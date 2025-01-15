@@ -20,7 +20,7 @@ int setup_buff(char *buff, char *user_str, int len){
     int characterCount = 0;
     int whitespaceCount = 0;
     while (*user_str != '\0') {
-        if (characterCount > len) {
+        if (characterCount >= len) {
             return -1;
         }
         // If it is a space or tab
@@ -43,7 +43,7 @@ int setup_buff(char *buff, char *user_str, int len){
         }
         *user_str++;
     }
-    // Fill the rest with dots
+    // Fill the rest with dots (the -1 is for the \0)
     int numberOfDots = 50 - characterCount - 1; 
     for (int i = 0; i < numberOfDots; i++) {
         *buff = '.';
@@ -69,14 +69,22 @@ void usage(char *exename){
 int count_words(char *buff, int len, int str_len){
     //YOU MUST IMPLEMENT
     int wordCount = 0;
+    int isLetter = 0;
     for (int i = 0; i < str_len; i++) {
-        if (*buff == ' ') {
-            wordCount++;
+        if (*buff == ' ' || *buff == '\t') {
+            if (isLetter == 1) {
+                wordCount++;
+            }
+            isLetter = 0;
+        } else {
+            isLetter = 1;
         }
         buff++;
     }
-    wordCount++;
-    printf("Word Count: %d \n", wordCount);
+    // If it is just 1 letter or at the end
+    if (isLetter == 1) {
+        wordCount++;
+    }
     return wordCount;
 }
 
@@ -158,14 +166,12 @@ int main(int argc, char *argv[]){
         //TODO:  #5 Implement the other cases for 'r' and 'w' by extending
         //       the case statement options
         case 'r':
-            // have a pointer at the beginning of the string and at the end of the string
-            // The beginning pointer will point at the ending pointer
-            // Beginning pointer will increment and ending pointer will decrement
-            // Ends when the beginning pointer is no longer to the "left" of the ending pointer
             char *start = buff;
             char *end = buff + user_str_len - 1;
             char temp;
 
+            // Begin is end, both walk towards each other until begin
+            // is right of end
             while (start < end) {
                 temp = *start;
                 *start = *end;
@@ -174,6 +180,8 @@ int main(int argc, char *argv[]){
                 end--;
             }
 
+            // Print out only the lettrs, not the .
+            // Keep in mind that the spaces are also removed
             for (int i = 0; i < user_str_len; i++) {
                 printf("%c", *buff);
                 buff++;
@@ -181,29 +189,63 @@ int main(int argc, char *argv[]){
             printf("\n");
             break;
         case 'w':
-            int wordCount = count_words(buff, BUFFER_SZ, user_str_len);
             buff = beginningBuff;
-            int totalCharacterCount = 0;
-            // Iterate over number of words
-            for (int i = 1; i <= wordCount; i++) {
-                int currentCharacterCount = 0;
-                printf("%d.) ", i);
-                // Iterate over each character per word (words are separated by spaces)
-                // Special case if it is the last one (then we just check for str length)
-                while (*buff != ' ' && totalCharacterCount < user_str_len) {
-                    printf("%c", *buff);
-                    currentCharacterCount++;
+            int wordCount = 1;
+            int isLetter = 0;
+            int charCount = 0;
+
+            // We don't care about the trailing ...
+            int totalCharacterCount = user_str_len;
+
+            while (totalCharacterCount > 0) {
+                // Skip any leading whitespaces
+                while (*buff == ' ' || *buff == '\t') {
                     buff++;
-                    totalCharacterCount++;
+                    totalCharacterCount--;
                 }
-                buff++;
-                totalCharacterCount++;
-                printf(" (%d) \n", currentCharacterCount);
+
+                // If it is an empty string
+                if (*buff == '\0') {
+                    break;
+                }
+
+                // Keep a starting pointer per new word. Also, syncs up "position" with wordStart and buff
+                char *wordStart = buff;
+
+                // Go through each character in the word (a word starts if it is a nonwhitespace)
+                while (*buff != ' ' && *buff != '\t' && totalCharacterCount > 0) {
+                    charCount++;
+                    buff++;
+                    totalCharacterCount--;
+                }
+
+                // If there is at least one char, then there must be a word
+                if (charCount > 0) {
+                    printf("%d.) ", wordCount); 
+                    // Start of word
+                    for (int i = 0; i < charCount; i++) {
+                        printf("%c", *wordStart);
+                        wordStart++;
+                    }
+                    printf(" (%d)", charCount);
+                    // Word finished
+                    wordCount++;
+                }
+
+                
+
+                // Any trailing whitespace will be essentially ignored
+                while (*buff == ' ' || *buff == '\t') {
+                    buff++;
+                    totalCharacterCount--;
+                }
+                printf("\n");
+                charCount = 0;
             }
             break;
         case 'x':
             if (argc != 4) {
-                printf("Wrong number of arguments");
+                printf("Wrong number of arguments. You have %d instead of 4", argc);
                 return -2;
             } else {
                 printf("Not implemented!");
