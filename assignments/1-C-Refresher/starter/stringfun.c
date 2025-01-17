@@ -14,6 +14,17 @@ int  setup_buff(char *, char *, int);
 int  count_words(char *, int, int);
 //add additional prototypes here
 
+int getLength(char *);
+
+int getLength(char *word) {
+    int charCount = 0;
+    while (*word != '\0') {
+        charCount++;
+        word++;
+    }
+    return charCount;
+}
+
 
 int setup_buff(char *buff, char *user_str, int len){
     //TODO: #4:  Implement the setup buff as per the directions
@@ -28,8 +39,9 @@ int setup_buff(char *buff, char *user_str, int len){
             // Then incrmement space
             whitespaceCount++;
 
-            // Don't increment if it is a streak
-            if (whitespaceCount == 1) {
+            // Don't increment if it is a streak, don't copy whitespace if 
+            // it is at the beginning or the end
+            if (whitespaceCount == 1 && characterCount != 0) {
                 *buff = ' ';
                 buff++;
                 characterCount++;
@@ -41,10 +53,18 @@ int setup_buff(char *buff, char *user_str, int len){
             buff++;
             characterCount++;
         }
-        *user_str++;
+        user_str++;
     }
+
+    // The case where we end on a space, fix it with a dot
+    buff--;
+    if (*buff == ' ' || *buff == '\t') {
+        *buff = '.';
+    }
+    buff++;
+
     // Fill the rest with dots (the -1 is for the \0)
-    int numberOfDots = 50 - characterCount - 1; 
+    int numberOfDots = 50 - characterCount; 
     for (int i = 0; i < numberOfDots; i++) {
         *buff = '.';
         buff++;
@@ -54,10 +74,11 @@ int setup_buff(char *buff, char *user_str, int len){
 }
 
 void print_buff(char *buff, int len){
-    printf("Buffer:  ");
+    printf("Buffer:  [");
     for (int i=0; i<len; i++){
         putchar(*(buff+i));
     }
+    printf("]");
     putchar('\n');
 }
 
@@ -68,6 +89,12 @@ void usage(char *exename){
 
 int count_words(char *buff, int len, int str_len){
     //YOU MUST IMPLEMENT
+
+    // Honestly, I don't thin I need this len
+    if (len > 50) {
+        return -2;
+    }
+
     int wordCount = 0;
     int isLetter = 0;
     for (int i = 0; i < str_len; i++) {
@@ -155,6 +182,10 @@ int main(int argc, char *argv[]){
 
     switch (opt){
         case 'c':
+            if (argc != 3) {
+                printf("Wrong number of arguments. You have %d instead of 3. Error -2", argc);
+                return -2;
+            }
             rc = count_words(buff, BUFFER_SZ, user_str_len);  //you need to implement
             if (rc < 0){
                 printf("Error counting words, rc = %d", rc);
@@ -166,6 +197,10 @@ int main(int argc, char *argv[]){
         //TODO:  #5 Implement the other cases for 'r' and 'w' by extending
         //       the case statement options
         case 'r':
+            if (argc != 3) {
+                printf("Wrong number of arguments. You have %d instead of 3. Error -2", argc);
+                exit(-2);
+            }
             char *start = buff;
             char *end = buff + user_str_len - 1;
             char temp;
@@ -179,23 +214,21 @@ int main(int argc, char *argv[]){
                 start++;
                 end--;
             }
-
-            // Print out only the lettrs, not the .
-            // Keep in mind that the spaces are also removed
-            for (int i = 0; i < user_str_len; i++) {
-                printf("%c", *buff);
-                buff++;
-            }
-            printf("\n");
             break;
         case 'w':
+            if (argc != 3) {
+                printf("Wrong number of arguments. You have %d instead of 3. Error -2", argc);
+                exit(-2);
+            }
             buff = beginningBuff;
             int wordCount = 1;
-            int isLetter = 0;
             int charCount = 0;
 
             // We don't care about the trailing ...
             int totalCharacterCount = user_str_len;
+
+            printf("Word Print\n");
+            printf("----------\n");
 
             while (totalCharacterCount > 0) {
                 // Skip any leading whitespaces
@@ -221,18 +254,16 @@ int main(int argc, char *argv[]){
 
                 // If there is at least one char, then there must be a word
                 if (charCount > 0) {
-                    printf("%d.) ", wordCount); 
+                    printf("%d. ", wordCount); 
                     // Start of word
                     for (int i = 0; i < charCount; i++) {
                         printf("%c", *wordStart);
                         wordStart++;
                     }
-                    printf(" (%d)", charCount);
+                    printf("(%d)", charCount);
                     // Word finished
                     wordCount++;
                 }
-
-                
 
                 // Any trailing whitespace will be essentially ignored
                 while (*buff == ' ' || *buff == '\t') {
@@ -242,14 +273,191 @@ int main(int argc, char *argv[]){
                 printf("\n");
                 charCount = 0;
             }
+            printf("\n");
+            printf("Number of words returned: %d\n", (wordCount - 1));
             break;
         case 'x':
-            if (argc != 4) {
-                printf("Wrong number of arguments. You have %d instead of 4", argc);
+            // Implemented 
+            if (argc != 5) {
+                printf("Wrong number of arguments. You have %d instead of 5. Error -2", argc);
                 return -2;
-            } else {
-                printf("Not implemented!");
-                return 0;
+            } 
+            buff = beginningBuff;
+
+            // length of search target
+            // Will just search and replace one occurrence only. 
+
+            // Arguments into arrays
+            char *searchString = argv[3];
+            char *replaceString = argv[4];
+
+            char *tempSearchString = searchString;
+            char *tempReplaceString = replaceString;
+
+            int searchLength = getLength(tempSearchString);
+            int replaceLength = getLength(tempReplaceString);
+
+            totalCharacterCount = user_str_len;
+
+            int match = 0;
+            while (totalCharacterCount > 0 && match != 1) {
+
+                // Search length
+                int newSearchLength = searchLength;
+
+                // Used at the end. Brings the pointer back to next char
+                int reset = newSearchLength - 1;
+
+                // Set the pointer to the beginning of the search string
+                char *searchStart = searchString;
+
+                char *buffCopy = buff;
+
+                // Essentially, it checks the replace word to the current letters
+                // If all the characters match, then it is a match
+                int charMatch = 0;
+                while (newSearchLength > 0) {
+                    if (*buff == *searchStart) {
+                        charMatch++;
+                    }
+                    buff++;
+                    searchStart++;
+                    newSearchLength--;
+                }
+
+                // If a match
+                if (charMatch == searchLength) {
+
+                    // The case where the repalce word is too big
+                    if ((replaceLength - searchLength + user_str_len) > BUFFER_SZ) {
+                        printf("Exceeds Buffer Limit. Error -2");
+                        exit(-2);
+                    }
+
+                    match = 1;
+
+                    // Difference between the replace word and the search word
+                    int offSet = replaceLength - searchLength;
+
+                    // If the replace word is larger than the search word
+                    // Essentially shift what is left after the replace word
+                    // by the length of the replace words to the right if it is in the middle or beginning
+                    // but don't shift when it is at the end
+
+                    int charactersToShift = totalCharacterCount - searchLength;
+                    if (offSet > 0) {
+                        // If it is at the end of the string, then just replace the dots with the leftover characters
+                        // No need to shift
+                        buff--;
+                        for (int i = 0; i < charactersToShift; i++) {
+                            
+                            // Go to the end of string
+                            for (int j = 0; j < charactersToShift - i; j++) {
+                                buff++;
+                            }
+
+                            // So we want to get the last character shifted, then the second to last, etc
+                            for (int j = 0; j < i; j++) {
+                                buff--;
+                            }
+
+                            char characterToShift = *buff;
+
+                            for (int j = 0; j < offSet; j++) {
+                                buff++;
+                            }
+
+                            *buff = characterToShift;
+
+                            for (int j = 0; j < offSet; j++) {
+                                buff--;
+                            }
+
+                            for (int j = 0; j < i; j++) {
+                                buff++;
+                            }
+                            // Go to the end of string
+                            for (int j = 0; j < charactersToShift - i; j++) {
+                                buff--;
+                            }
+                            buff++;
+                        }
+                        buff = buffCopy;
+                        for (int i = 0; i < replaceLength; i++) {
+                            *buff = *replaceString;
+                            buff++;
+                            replaceString++;
+                        }
+                    } 
+                    // If the replace word is shorter than the search word
+                    // The we have to shift everything to the left by that length
+                    else if (offSet < 0) {    
+                        offSet *= -1;
+                        char *endCopy = NULL;
+                        for (int i = 0; i < charactersToShift; i++) {
+                            for (int j = 0; j < i; j++) {
+                                buff++;
+                            }
+
+                            if (i == charactersToShift - 1) {
+                                endCopy = buff;
+                            }
+
+                            char characterToShift = *buff;
+
+                            for (int j = 0; j < offSet; j++) {
+                                buff--;
+                            }
+
+                            *buff = characterToShift;
+
+                            for (int j = 0; j < offSet; j++) {
+                                buff++;
+                            }
+
+                            for (int j = 0; j < i; j++) {
+                                buff--;
+                            }
+                        }
+                        buff = buffCopy;
+                        for (int i = 0; i < replaceLength; i++) {
+                            *buff = *replaceString;
+                            replaceString++;
+                            buff++;
+                        }
+                        buff = endCopy;
+                        for (int i = 0; i < offSet; i++) {
+                            *buff = '.';
+                            buff--;
+                        }
+                        offSet *= -1;
+                    }
+
+                    else {
+                        for (int i = 0; i < searchLength; i++) {
+                            buff--;
+                        }
+                        for (int i = 0; i < replaceLength; i++) {
+                            *buff = *replaceString;
+                            replaceString++;
+                            buff++;
+                        }
+                    }
+                }
+
+                // Only reset for the next search if we don't have a match
+                if (match != 1) {
+                    for (int i = 0; i < reset; i++) {
+                    buff--;
+                    searchStart--;
+                    }
+                    totalCharacterCount--;
+                    match = 0;
+                }
+            }
+            if (match == 0) {
+                // No match
+                return -2;
             }
             break;
         default:
