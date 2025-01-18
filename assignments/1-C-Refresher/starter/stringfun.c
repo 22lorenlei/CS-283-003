@@ -364,16 +364,19 @@ int main(int argc, char *argv[]){
 
                             char characterToShift = *buff;
 
+                            // Go to the offset
                             for (int j = 0; j < offSet; j++) {
                                 buff++;
                             }
 
                             *buff = characterToShift;
-
+                            
+                            // Undo the offset
                             for (int j = 0; j < offSet; j++) {
                                 buff--;
                             }
 
+                            // Undo the second for loop
                             for (int j = 0; j < i; j++) {
                                 buff++;
                             }
@@ -384,6 +387,7 @@ int main(int argc, char *argv[]){
                             buff++;
                         }
                         buff = buffCopy;
+                        // The replacement starts here
                         for (int i = 0; i < replaceLength; i++) {
                             *buff = *replaceString;
                             buff++;
@@ -392,9 +396,12 @@ int main(int argc, char *argv[]){
                     } 
                     // If the replace word is shorter than the search word
                     // The we have to shift everything to the left by that length
-                    else if (offSet < 0) {    
+                    else if (offSet < 0) {   
+                        // offSet is negative here, so we just change it 
                         offSet *= -1;
                         for (int i = 0; i < charactersToShift; i++) {
+
+                            // Get the characters we need to shift from left to right
                             for (int j = 0; j < i; j++) {
                                 printf("%c\n", *buff);
                                 buff++;
@@ -402,6 +409,7 @@ int main(int argc, char *argv[]){
 
                             char characterToShift = *buff;
 
+                            // Go to the offset
                             for (int j = 0; j < offSet; j++) {
                                 printf("%c\n", *buff);
                                 buff--;
@@ -409,22 +417,26 @@ int main(int argc, char *argv[]){
 
                             *buff = characterToShift;
 
+                            // Undo offset
                             for (int j = 0; j < offSet; j++) {
                                 printf("%c\n", *buff);
                                 buff++;
                             }
 
+                            // Undo first for loop
                             for (int j = 0; j < i; j++) {
                                 printf("%c\n", *buff);
                                 buff--;
                             }
                         }
                         buff = buffCopy;
+                        // Replace the string
                         for (int i = 0; i < replaceLength; i++) {
                             *buff = *replaceString;
                             replaceString++;
                             buff++;
                         }
+                        // Fill in empty gaps with periods
                         for (int i = 0; i < offSet; i++) {
                             *buff = '.';
                             buff++;
@@ -433,6 +445,7 @@ int main(int argc, char *argv[]){
                     }
 
                     else {
+                        // Regular replace with equal lengths
                         for (int i = 0; i < searchLength; i++) {
                             buff--;
                         }
