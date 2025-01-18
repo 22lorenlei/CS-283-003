@@ -329,9 +329,10 @@ int main(int argc, char *argv[]){
                 if (charMatch == searchLength) {
 
                     // The case where the repalce word is too big
+
+                    int overflowProblem = 0;
                     if ((replaceLength - searchLength + user_str_len) > BUFFER_SZ) {
-                        printf("Exceeds Buffer Limit. Error -2");
-                        exit(-2);
+                        overflowProblem = replaceLength - searchLength;
                     }
 
                     match = 1;
@@ -349,10 +350,10 @@ int main(int argc, char *argv[]){
                         // If it is at the end of the string, then just replace the dots with the leftover characters
                         // No need to shift
                         buff--;
-                        for (int i = 0; i < charactersToShift; i++) {
+                        for (int i = 0; i < charactersToShift - overflowProblem; i++) {
                             
                             // Go to the end of string
-                            for (int j = 0; j < charactersToShift - i; j++) {
+                            for (int j = 0; j < charactersToShift - overflowProblem - i; j++) {
                                 buff++;
                             }
 
@@ -377,7 +378,7 @@ int main(int argc, char *argv[]){
                                 buff++;
                             }
                             // Go to the end of string
-                            for (int j = 0; j < charactersToShift - i; j++) {
+                            for (int j = 0; j < charactersToShift - overflowProblem - i; j++) {
                                 buff--;
                             }
                             buff++;
@@ -393,29 +394,28 @@ int main(int argc, char *argv[]){
                     // The we have to shift everything to the left by that length
                     else if (offSet < 0) {    
                         offSet *= -1;
-                        char *endCopy = NULL;
                         for (int i = 0; i < charactersToShift; i++) {
                             for (int j = 0; j < i; j++) {
+                                printf("%c\n", *buff);
                                 buff++;
-                            }
-
-                            if (i == charactersToShift - 1) {
-                                endCopy = buff;
                             }
 
                             char characterToShift = *buff;
 
                             for (int j = 0; j < offSet; j++) {
+                                printf("%c\n", *buff);
                                 buff--;
                             }
 
                             *buff = characterToShift;
 
                             for (int j = 0; j < offSet; j++) {
+                                printf("%c\n", *buff);
                                 buff++;
                             }
 
                             for (int j = 0; j < i; j++) {
+                                printf("%c\n", *buff);
                                 buff--;
                             }
                         }
@@ -425,10 +425,9 @@ int main(int argc, char *argv[]){
                             replaceString++;
                             buff++;
                         }
-                        buff = endCopy;
                         for (int i = 0; i < offSet; i++) {
                             *buff = '.';
-                            buff--;
+                            buff++;
                         }
                         offSet *= -1;
                     }
