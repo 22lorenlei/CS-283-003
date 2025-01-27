@@ -40,8 +40,14 @@ https://github.com/22lorenlei/CS-283-003
 
 4. Briefly describe what you want to get out of this class.
 
+<<<<<<< HEAD
 Get more familiar with C, understand how things work on the lower level, understand the connection between software and hardware
 
 5. Briefly describe any concerns you might be having with being successful in this class (if any).
 
 C, lower level concepts, setting up
+=======
+5. Briefly describe any concerns you might be having with being successful in this class (if any).
+
+
+>>>>>>> upstream/main
