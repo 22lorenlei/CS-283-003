@@ -59,7 +59,39 @@ int open_db(char *dbFile, bool should_truncate){
  *  console:  Does not produce any console I/O used by other functions
  */
 int get_student(int fd, int id, student_t *s){
-    return NOT_IMPLEMENTED_YET;
+    int offset = id * sizeof(student_t);
+    off_t lseekResult = lseek(fd, offset, SEEK_SET);
+
+    // lseek problems
+    if (lseekResult == -1) {
+        return ERR_DB_FILE;
+    }
+
+    // This will be set to all 0s
+    char emptySpace[sizeof(student_t)];
+
+    // This is for what we read our data into
+    char buffer[sizeof(student_t)];
+
+    ssize_t bufferRead;
+
+    // Prep the emptySpace and read into buffer
+    memset(emptySpace, 0, sizeof(student_t));
+    bufferRead = read(fd, buffer, sizeof(buffer));
+
+    // read problems
+    if (bufferRead == -1) {
+        return ERR_DB_FILE;
+    }
+    
+    // For the case that it is empty (ex. after clear) or if that area is all 0s
+    if (bufferRead != 0 && memcmp(buffer, emptySpace, sizeof(student_t)) != 0) {
+        memcpy(s, buffer, sizeof(buffer));
+        return NO_ERROR;
+    }
+
+    // Else we can't find them
+    return SRCH_NOT_FOUND;
 }
 
 /*
@@ -88,8 +120,57 @@ int get_student(int fd, int id, student_t *s){
  *            
  */
 int add_student(int fd, int id, char *fname, char *lname, int gpa){
-    printf(M_NOT_IMPL);
-    return NOT_IMPLEMENTED_YET;
+
+    int offset = id * sizeof(student_t);
+    off_t lseekResult = lseek(fd, offset, SEEK_SET);
+
+    // lseek problems
+    if (lseekResult == -1) {
+        printf(M_ERR_DB_READ);
+        return ERR_DB_FILE;
+    }
+
+    // what we read into
+    char buffer[sizeof(student_t)];
+
+    // this will be set to all 0s
+    char emptySpace[sizeof(student_t)];
+
+    // prepping emptySpace, reading it into buffer
+    memset(emptySpace, 0, sizeof(student_t));
+    ssize_t readResult;
+    readResult = read(fd, buffer, sizeof(buffer));
+
+    // read problems
+    if (readResult == -1) {
+        printf(M_ERR_DB_READ);
+        return ERR_DB_FILE;
+    }
+
+    // the case where we read at least some thing and that the space is being used (aka student is there already)
+    if (readResult != 0 && memcmp(emptySpace, buffer, sizeof(student_t)) != 0) {
+        printf(M_ERR_DB_ADD_DUP, id);
+        return ERR_DB_OP;
+    }
+
+    student_t s1;
+    s1.id = id;
+    strncpy(s1.fname, fname, sizeof(s1.fname));
+    strncpy(s1.lname, lname, sizeof(s1.lname));
+    s1.gpa = gpa;
+
+    // try to write the student 
+    ssize_t writeResult = write(fd, &s1, sizeof(student_t));
+
+    // write problems
+    if (writeResult == -1) {
+        printf(M_ERR_DB_WRITE);
+        return ERR_DB_FILE;
+    }
+
+    // success messages
+    printf(M_STD_ADDED, id);
+    return NO_ERROR;
 }
 
 /*
@@ -115,8 +196,48 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa){
  *            
  */
 int del_student(int fd, int id){
-    printf(M_NOT_IMPL);
-    return NOT_IMPLEMENTED_YET;
+    student_t student = {0};
+    ssize_t statusCode = get_student(fd, id, &student);
+
+    // student doesn't exist
+    if (statusCode == SRCH_NOT_FOUND) {
+        printf(M_STD_NOT_FND_MSG, id);
+        return ERR_DB_OP;
+
+    // Some other database error
+    } else if (statusCode == ERR_DB_FILE) {
+        printf(M_ERR_DB_READ);
+        return ERR_DB_FILE;
+    }
+
+    // If it gets past here, then we have to delete
+    
+    // Jump to the memory location
+    int offset = id * sizeof(student_t);
+    ssize_t lseekResult = lseek(fd, offset, SEEK_SET);
+
+    // lseek problems
+    if (lseekResult == -1) {
+        printf(M_ERR_DB_READ);
+        return ERR_DB_FILE;
+    }
+    
+    // here, deleting would be just setting everything to 0
+    char emptySpace[sizeof(student_t)];
+    memset(emptySpace, 0, sizeof(emptySpace));
+
+    // overwrite whatever is in there with 0s
+    ssize_t writeResult = write(fd, emptySpace, sizeof(student_t));
+
+    // write problems (delete)
+    if (writeResult == -1) {
+        printf(M_ERR_DB_WRITE);
+        return ERR_DB_FILE;
+    }
+
+    // sucess messages
+    printf(M_STD_DEL_MSG, id);
+    return NO_ERROR;
 }
 
 /*
@@ -144,8 +265,33 @@ int del_student(int fd, int id){
  *            
  */
 int count_db_records(int fd){
-    printf(M_NOT_IMPL);
-    return NOT_IMPLEMENTED_YET;
+
+    // prep emptySpace with 0s
+    char emptySpace[sizeof(student_t)];
+    memset(emptySpace, 0, sizeof(student_t));
+
+    // this is what we will read into repeatedly
+    char buffer[sizeof(student_t)];
+
+    int studentCount = 0;
+
+    // We will read at chunks of size of student
+    size_t chunksRead;
+
+    // Basically, go through entire file, the moment a section is not just all 0s, assume it is a student and increment
+    while ((chunksRead = read(fd, buffer, sizeof(student_t))) > 0) {
+        if (memcmp(buffer, emptySpace, sizeof(student_t)) != 0) {
+            studentCount += 1;
+        }
+    }
+    
+    // print out stats accordingly
+    if (studentCount == 0) {
+        printf(M_DB_EMPTY);
+    } else {
+        printf(M_DB_RECORD_CNT, studentCount);
+    }
+    return studentCount;
 }
 
 /*
@@ -182,8 +328,43 @@ int count_db_records(int fd){
  *            
  */
 int print_db(int fd){
-    printf(M_NOT_IMPL);
-    return NOT_IMPLEMENTED_YET;
+
+    // prep emptySpace with all 0s for later comparison
+    char emptySpace[sizeof(student_t)];
+    memset(emptySpace, 0, sizeof(student_t));
+
+    char buffer[sizeof(student_t)];
+
+    int studentCount = 0;
+
+    // read at chunks the size of students
+    size_t chunksRead;
+
+    // Basically, it's like the count function, but we go through the entire file and if that section isn't empty,
+    // then we increment student as well as printing their stats
+    while ((chunksRead = read(fd, buffer, sizeof(student_t))) > 0) {
+        if (memcmp(buffer, emptySpace, sizeof(student_t)) != 0) {
+
+            // Just print out the header once
+            if (studentCount == 0) {
+                printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST NAME", "LAST_NAME", "GPA");
+            }
+
+            // The rest here is just printing out their stats
+            student_t *s = (student_t *) buffer;
+
+            float gpa = s->gpa / 100.0;
+            printf(STUDENT_PRINT_FMT_STRING, s->id, s->fname, s->lname, gpa);
+
+            studentCount += 1;
+        }
+    }
+    
+    // For the case there is nothing in the db
+    if (studentCount == 0) {
+        printf(M_DB_EMPTY);
+    } 
+   return NO_ERROR;
 }
 
 /*
@@ -215,7 +396,17 @@ int print_db(int fd){
  *            
  */
 void print_student(student_t *s){
-    printf(M_NOT_IMPL);
+
+    // If student doesn't exist
+    if (s == NULL || s->id == 0) {
+        printf(M_ERR_STD_PRINT);
+
+    // Else we print out their stats
+    } else {
+        printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST NAME", "LAST_NAME", "GPA");
+        float gpa = s->gpa / 100.0;
+        printf(STUDENT_PRINT_FMT_STRING, s->id, s->fname, s->lname, gpa);
+    }
 }
 
 /*
