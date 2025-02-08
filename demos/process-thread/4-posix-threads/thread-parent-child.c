@@ -3,9 +3,10 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/syscall.h>
 
 #define NUM_THREADS 10
-#define MAX_COUNT 10000
+#define MAX_COUNT 100
 
 // Mutex for thread synchronization
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -27,17 +28,22 @@ void sleep_ms(int ms){
     nanosleep(&ts, NULL);
 }
 
+unsigned long get_task_id(){
+    unsigned long tid = syscall(SYS_gettid);
+    unsigned int pid = getpid();
+
+    return (unsigned long)((tid << 32) | pid);
+}
+
 // Thread function
 void* thread_function(void* arg) {
     thread_data_t* data = (thread_data_t*)arg;
-    int local_i;
+    unsigned long task_id = get_task_id();
     
     for (int i = 0; i < MAX_COUNT; i++) {
-        pthread_mutex_lock(&mutex);
-        local_i = shared_counter;
-        local_i++;
-        shared_counter = local_i;
-        pthread_mutex_unlock(&mutex);
+        printf("I am thread %d with taskid %8lx\n",
+            data->thread_id, task_id);
+        sleep(1);
     }
     
     printf("Thread %d: Finished execution\n", data->thread_id);
@@ -67,16 +73,10 @@ int main() {
     }
     
     // Wait for all threads to complete
-    for (int i = 0; i < NUM_THREADS; i++) {
-        pthread_join(threads[i], NULL);
-        printf("Main: Thread %d has completed\n", i);
-    }
-    
-    // Clean up
-    pthread_mutex_destroy(&mutex);
-    
-    printf("Main: Final counter value: %d\n", shared_counter);
+    printf("sleeping for 5 seconds\n");
+    sleep(5);
     printf("Main: Program completed\n");
+    printf("Everything should be gone for pid=%d\n", getpid());
     
     return 0;
 }
