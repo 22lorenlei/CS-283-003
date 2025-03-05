@@ -12,4 +12,4 @@ execvp essentially tries to find executable files in the directories in the PATH
 
 4. Currently, your shell supports a fixed number of piped commands (CMD_MAX). How would you modify your implementation to allow an arbitrary number of piped commands while still handling memory allocation efficiently? What trade-offs would you need to consider?
 
-So sintead of having like an statically allocated array, I would just have a pointer like char *args. Then I would use malloc with the desired input size. Freeing it would just be just freeing the head of that pointer. The arguments would be spaced apart, probably with a \0 to separate. 
+So sintead of having like an statically allocated array, I would just have a pointer like char *args. Then I would use malloc with the desired input size. Freeing it would just be just freeing the head. The arguments would be spaced apart, probably with a \0 to separate. These pointers would just point to the command structs. Downside is that every time I want to change it, then I would have to free it and then malloc again. Also, dynamically allocating memory is also tricky in general.
