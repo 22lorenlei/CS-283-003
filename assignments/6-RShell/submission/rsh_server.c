@@ -134,8 +134,7 @@ int boot_server(char *ifaces, int port){
     addr.sin_addr.s_addr = inet_addr(ifaces);
     addr.sin_port = htons(port);
 
-    ret = bind(svr_socket, (struct sockaddr *) &addr,
-               sizeof(addr));
+    ret = bind(svr_socket, (struct sockaddr *) &addr, sizeof(addr));
     if (ret == -1) {
         perror("accept");
         return ERR_RDSH_COMMUNICATION;
