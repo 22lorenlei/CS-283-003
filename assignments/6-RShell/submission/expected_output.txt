@@ -1,0 +1,1 @@
+socketclientmode:addr:127.0.0.1:1234dsh4>Server:actual_output.txtbatsdragon.txtdshdsh_cli.cdshlib.cdshlib.hexpected_output.txtmakefilersh_cli.crsh_server.crshlib.htest.txttestFolderdsh4>cmdloopreturned0
